@@ -154,10 +154,10 @@ class RGJ05 < Window
 						end
 					end
 				end
-			elsif a.success && a.x <= width / 4 && a.x > 0 && @bear.triggered == false
+			elsif a.success && a.x <= width / 5 && a.x > 0 && @bear.triggered == false
 				@bear.triggered = true
 				@bear.state = :hug
-				@bear.frame = 7
+				@bear.frame = 5
 			else
 				translate a.x + width / 2, height / 2 - 20 do
 					scale 0.05, 0.05 do
@@ -290,7 +290,7 @@ class Bear
 		@last_foot = :right
 		@pushes = 0
 		@frame = 0
-		@states = {standing: 0..0, walk_left: 1...4, walk_right: 4...6, walking: 1..7, hug: 7..11, high_five: 11..15}
+		@states = {standing: 0..0, walk_left: 1...4, walk_right: 4...6, walking: 1..7, hug: 5..11, high_five: 11..15}
 		@state = :standing
 		@last_update = 0
 		@delay = 100
