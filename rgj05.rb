@@ -16,6 +16,7 @@ class RGJ05 < Window
 		@reticle = Image.new self, 'reticle.png', false
 		@bear = Bear.new
 		@bird = Bird.new
+		@hearts = []
 		@action_queue = 100.times.inject([]) {|m, _| m.push ACTION_TYPES[2]} # m.push ACTION_TYPES.sample}
 		@font = Font.new self, 'Retroville NC', 14
 		@small = Font.new self, 'Retroville NC', 10
@@ -44,6 +45,8 @@ class RGJ05 < Window
 			@bear.pushes = 0
 		end
 		@bird.update
+		@hearts.each(&:update)
+		@hearts.delete_if {|h| h.y >= height}
 	end
 	def draw
 		draw_quad(
@@ -126,6 +129,7 @@ class RGJ05 < Window
 						rotate milliseconds do
 							translate -@bird.image.width / 2, -@bird.image.height / 2 do
 								@bird.image.draw 0, 0, 0
+								@hearts.push Heart.new width * 3 / 4 + @bird.image.width / 2, 100
 							end
 						end
 					end
@@ -133,6 +137,9 @@ class RGJ05 < Window
 			else
 				@bird.image.draw a.x + width / 2, 100, 0
 			end
+		end
+		@hearts.each do |h|
+			h.image.draw h.x, h.y, 2
 		end
 	end
 	def button_down id
@@ -266,6 +273,22 @@ class Bird
 	end
 	def animation_complete
 		@frame = @states[@state].min
+	end
+end
+class Heart
+	attr_accessor :x, :y
+	attr_reader :image
+	def initialize x, y
+		@x, @y = x, y
+		@vx, @vy = -(rand() * 10), -(rand() * 10)
+		@image = Image.new RGJ05.window, 'heart.png', false
+	end
+	def update
+		@vy += 1
+		@y += @vy
+		@x += @vx
+		@vx *= 0.9
+		@vy = 10 if @vy >= 10
 	end
 end
 RGJ05.new.show
