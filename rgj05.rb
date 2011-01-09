@@ -24,7 +24,7 @@ class RGJ05 < Window
 		@small = Font.new self, 'Retroville NC', 10
 		@score = 0
 		@delay = 2000
-		@speed = 3000.0
+		@speed = 2000.0
 		@sky_blue = Color.new 255, 173, 216, 230
 		@dodger_blue = Color.new 255, 30, 144, 255
 		@lawn_green = Color.new 255, 124, 252, 0
@@ -49,6 +49,7 @@ class RGJ05 < Window
 		@bird.update
 		@hearts.each(&:update)
 		@hearts.delete_if {|h| h.y >= height}
+		@actions.each {|a| a.attempted = true if a.x <= 0}
 	end
 	def draw
 		draw_quad(
@@ -142,6 +143,7 @@ class RGJ05 < Window
 		end
 		@actions.select {|a| a.action_type == :hug}.each do |a|
 			if a.success && a.x <= 0
+				@bear.triggered = false
 				translate a.x + width / 2, height / 2 - 20 do
 					rotate 50 do
 						scale 0.05, 0.05 do
@@ -152,6 +154,10 @@ class RGJ05 < Window
 						end
 					end
 				end
+			elsif a.success && a.x <= width / 4 && a.x > 0 && @bear.triggered == false
+				@bear.triggered = true
+				@bear.state = :hug
+				@bear.frame = 7
 			else
 				translate a.x + width / 2, height / 2 - 20 do
 					scale 0.05, 0.05 do
@@ -164,6 +170,7 @@ class RGJ05 < Window
 		end
 		@actions.select {|a| a.action_type == :high_five}.each do |a|
 			if a.success && a.x <= 0
+				@bear.triggered = false
 				translate a.x + width / 2, height / 2 - 20 do
 					rotate 50 do
 						scale 0.05, 0.05 do
@@ -173,6 +180,12 @@ class RGJ05 < Window
 							end
 						end
 					end
+				end
+			elsif a.success && a.x <= width / 5 && a.x > 0 && @bear.triggered == false	
+				unless @bear.state == :high_five
+					@bear.triggered = true
+					@bear.state = :high_five
+					@bear.frame = 11
 				end
 			else
 				translate a.x + width / 2, height / 2 - 20 do
@@ -186,6 +199,17 @@ class RGJ05 < Window
 		end
 		@hearts.each do |h|
 			h.image.draw h.x, h.y, 2
+		end
+		if @score >= 2000
+			draw_quad(
+				0, 0, Color::WHITE,
+				width, 0, Color::RED,
+				width, height, Color::GREEN,
+				0, height, Color::BLUE, 100)
+			rotate 10 do
+				@tourist.draw 0, 0, 100
+			end
+			@small.draw 'GOOD JOB! I LOVE YOU!', 100, 100, 100
 		end
 	end
 	def button_down id
@@ -259,25 +283,27 @@ class Action
 	end
 end
 class Bear
-	attr_accessor :up_to_speed, :last_foot, :pushes, :last_push
+	attr_accessor :up_to_speed, :last_foot, :pushes, :last_push, :state, :states, :frame, :triggered, :images
 	def initialize
 		@images = Image.load_tiles RGJ05.window, 'bear.png', 20, 40, false
 		@up_to_speed = false
 		@last_foot = :right
 		@pushes = 0
 		@frame = 0
-		@states = {standing: 0..0, walk_left: 1..4, walk_right: 4..7, walking: 1..7}
+		@states = {standing: 0..0, walk_left: 1...4, walk_right: 4...6, walking: 1..7, hug: 7..11, high_five: 11..15}
 		@state = :standing
 		@last_update = 0
 		@delay = 100
 		@last_push = 0
+		@triggered = false
+		@last_state = @state
 	end
 	def image
 		@images[@frame]
 	end
 	def update
 		if @up_to_speed || milliseconds  - @last_push < 400
-			@state = :walking
+			@state = :walking unless @state == :hug || @state == :high_five
 			next_frame
 		else
 			@state = :standing
@@ -293,6 +319,13 @@ class Bear
 		(@frame >= @states[@state].max - 1 ? animation_complete : @frame += 1)
 	end
 	def animation_complete
+		if @state == :high_five || @state == :hug
+			if @up_to_speed
+				@state = :walking
+			else
+				@state = :standing
+			end
+		end
 		@frame = @states[@state].min
 	end
 end
