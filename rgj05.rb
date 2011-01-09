@@ -10,12 +10,13 @@ class RGJ05 < Window
 	end
 	%w(width height).each {|m| define_singleton_method(m) {window.send m}}
 	def initialize
-		super 320, 240, false
+		super 640, 480, false # 320, 240, false
 		@actions = []
 		@last_action_pushed = 0
 		@reticle = Image.new self, 'reticle.png', false
 		@bear = Bear.new
-		@action_queue = 100.times.inject([]) {|m, _| m.push ACTION_TYPES.sample}
+		@bird = Bird.new
+		@action_queue = 100.times.inject([]) {|m, _| m.push ACTION_TYPES[2]} # m.push ACTION_TYPES.sample}
 		@font = Font.new self, 'Retroville NC', 14
 		@small = Font.new self, 'Retroville NC', 10
 		@score = 0
@@ -28,7 +29,7 @@ class RGJ05 < Window
 	end
 	def update
 		@actions.each(&:update)
-		@actions.delete_if {|a| a.x <= 0}
+		@actions.delete_if {|a| a.x <= -width / 2}
 		if milliseconds - @last_action_pushed > @delay && @bear.up_to_speed
 			@actions.push Action.new @speed, @action_queue.shift
 			@last_action_pushed = milliseconds
@@ -42,6 +43,7 @@ class RGJ05 < Window
 			@misses = 0
 			@bear.pushes = 0
 		end
+		@bird.update
 	end
 	def draw
 		draw_quad(
@@ -55,10 +57,10 @@ class RGJ05 < Window
 			width, height, @lawn_green,
 			0, height, @lawn_green)
 		draw_quad(
-			0, height - TIMELINE_HEIGHT - 20, Color::GRAY,
-			width, height - TIMELINE_HEIGHT - 20, Color::GRAY,
-			width, height - TIMELINE_HEIGHT + 20, Color::GRAY,
-			0, height - TIMELINE_HEIGHT + 20, Color::GRAY)
+			0, height - TIMELINE_HEIGHT - 15, Color::GRAY,
+			width, height - TIMELINE_HEIGHT - 15, Color::GRAY,
+			width, height - TIMELINE_HEIGHT + 15, Color::GRAY,
+			0, height - TIMELINE_HEIGHT + 15, Color::GRAY)
 		unless @bear.up_to_speed
 			@font.draw 'GET UP TO SPEED!', width / 2 - @font.text_width('GET UP TO SPEED!') / 2, 50, 5
 			@font.draw @bear.pushes, width / 2 + @font.text_width('GET UP TO SPEED!') / 2 + 10, 50, 5
@@ -111,8 +113,26 @@ class RGJ05 < Window
 		@small.draw "Uh-oh, you have missed #{@misses} times!", 10, 60, 5 if @misses > 0
 		action = @actions.first
 		if action && action.action_type == :love_beam && action.attempted && action.success
-			draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::YELLOW
-			draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::RED
+			if action.x > 0
+				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::YELLOW
+				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::RED
+				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 30, 0, Color::BLUE
+			end
+		end
+		@actions.select {|a| a.action_type == :love_beam}.each do |a|
+			if a.success && a.x <= width / 4
+				if a.x >= 0
+					translate width * 3 / 4 + @bird.image.width / 2, 100 do
+						rotate milliseconds do
+							translate -@bird.image.width / 2, -@bird.image.height / 2 do
+								@bird.image.draw 0, 0, 0
+							end
+						end
+					end
+				end
+			else
+				@bird.image.draw a.x + width / 2, 100, 0
+			end
 		end
 	end
 	def button_down id
@@ -172,13 +192,14 @@ class RGJ05 < Window
 	end
 end
 class Action
-	attr_accessor :x, :image, :action_type, :attempted, :success
+	attr_accessor :x, :image, :action_type, :attempted, :success, :spawned
 	def initialize length, action_type
 		@start, @length, @action_type = milliseconds, length, action_type
 		@image = Image.new RGJ05.window, 'box.png', false
 		@x = RGJ05.width
 		@attempted = false
 		@success = false
+		@spawned = false
 	end
 	def update
 		@x = RGJ05.width - (RGJ05.width * (milliseconds - @start) / @length)
@@ -211,6 +232,31 @@ class Bear
 			@last_foot = :right
 			@pushes = 0
 		end
+	end
+	def next_frame
+		animate! and @last_update = milliseconds if milliseconds - @last_update > @delay
+	end
+	def animate!
+		(@frame >= @states[@state].max - 1 ? animation_complete : @frame += 1)
+	end
+	def animation_complete
+		@frame = @states[@state].min
+	end
+end
+class Bird
+	def initialize
+		@images = Image.load_tiles RGJ05.window, 'bird.png', 20, 20, false
+		@frame = 0
+		@states = {flying: 0...4}
+		@state = :flying
+		@last_update = 0
+		@delay = 100
+	end
+	def image
+		@images[@frame]
+	end
+	def update
+		next_frame
 	end
 	def next_frame
 		animate! and @last_update = milliseconds if milliseconds - @last_update > @delay
