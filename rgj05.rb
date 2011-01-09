@@ -17,13 +17,14 @@ class RGJ05 < Window
 		@bear = Bear.new
 		@bird = Bird.new
 		@tourist = Image.new self, 'tourist.png', false
+		@high_five = Image.new self, 'tourist_high_five.png', false
 		@hearts = []
 		@action_queue = 100.times.inject([]) {|m, _| m.push ACTION_TYPES.sample}
 		@font = Font.new self, 'Retroville NC', 14
 		@small = Font.new self, 'Retroville NC', 10
 		@score = 0
 		@delay = 2000
-		@speed = 2000.0
+		@speed = 3000.0
 		@sky_blue = Color.new 255, 173, 216, 230
 		@dodger_blue = Color.new 255, 30, 144, 255
 		@lawn_green = Color.new 255, 124, 252, 0
@@ -156,6 +157,28 @@ class RGJ05 < Window
 					scale 0.05, 0.05 do
 						translate -@tourist.width / 2, -@tourist.height / 2 do
 							@tourist.draw 0, 0, 1
+						end
+					end
+				end
+			end
+		end
+		@actions.select {|a| a.action_type == :high_five}.each do |a|
+			if a.success && a.x <= 0
+				translate a.x + width / 2, height / 2 - 20 do
+					rotate 50 do
+						scale 0.05, 0.05 do
+							translate -@high_five.width / 2, -@high_five.height / 2 do
+								@high_five.draw 0, 0, 1
+								@hearts.push Heart.new a.x + width / 2 + (rand() * 10) - 5, height / 2 - 20 - 20
+							end
+						end
+					end
+				end
+			else
+				translate a.x + width / 2, height / 2 - 20 do
+					scale 0.05, 0.05 do
+						translate -@high_five.width / 2, -@high_five.height / 2 do
+							@high_five.draw 0, 0, 1
 						end
 					end
 				end
