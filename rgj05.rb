@@ -16,8 +16,9 @@ class RGJ05 < Window
 		@reticle = Image.new self, 'reticle.png', false
 		@bear = Bear.new
 		@bird = Bird.new
+		@tourist = Image.new self, 'tourist.png', false
 		@hearts = []
-		@action_queue = 100.times.inject([]) {|m, _| m.push ACTION_TYPES[2]} # m.push ACTION_TYPES.sample}
+		@action_queue = 100.times.inject([]) {|m, _| m.push ACTION_TYPES.sample}
 		@font = Font.new self, 'Retroville NC', 14
 		@small = Font.new self, 'Retroville NC', 10
 		@score = 0
@@ -104,7 +105,7 @@ class RGJ05 < Window
 		translate width / 2, height / 2 do
 			scale 2, 2 do
 				translate -@bear.image.width / 2, -@bear.image.height / 2 do
-					@bear.image.draw 0, 0, 1
+					@bear.image.draw 0, 0, 3
 				end
 			end
 		end
@@ -114,9 +115,9 @@ class RGJ05 < Window
 		@small.draw 'alternate l and r to get up to speed!', 10, 40, 5
 		@small.draw "you have #{@score} points! Keep up the love!", 10, 50, 5 if @bear.up_to_speed
 		@small.draw "Uh-oh, you have missed #{@misses} times!", 10, 60, 5 if @misses > 0
-		action = @actions.first
+		action = @actions.detect {|a| a.action_type == :love_beam}
 		if action && action.action_type == :love_beam && action.attempted && action.success
-			if action.x > 0
+			if action.x < width && action.x > 0
 				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::YELLOW
 				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::RED
 				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 30, 0, Color::BLUE
@@ -129,13 +130,35 @@ class RGJ05 < Window
 						rotate milliseconds do
 							translate -@bird.image.width / 2, -@bird.image.height / 2 do
 								@bird.image.draw 0, 0, 0
-								@hearts.push Heart.new width * 3 / 4 + @bird.image.width / 2, 100
+								@hearts.push Heart.new width * 3 / 4 + @bird.image.width / 2 + (rand() * 10) - 5, 100 + (rand() * 10) - 5
 							end
 						end
 					end
 				end
 			else
 				@bird.image.draw a.x + width / 2, 100, 0
+			end
+		end
+		@actions.select {|a| a.action_type == :hug}.each do |a|
+			if a.success && a.x <= 0
+				translate a.x + width / 2, height / 2 - 20 do
+					rotate 50 do
+						scale 0.05, 0.05 do
+							translate -@tourist.width / 2, -@tourist.height / 2 do
+								@tourist.draw 0, 0, 1
+								@hearts.push Heart.new a.x + width / 2 + (rand() * 10) - 5, height / 2 - 20 + (rand() * 10) - 5
+							end
+						end
+					end
+				end
+			else
+				translate a.x + width / 2, height / 2 - 20 do
+					scale 0.05, 0.05 do
+						translate -@tourist.width / 2, -@tourist.height / 2 do
+							@tourist.draw 0, 0, 1
+						end
+					end
+				end
 			end
 		end
 		@hearts.each do |h|
@@ -280,14 +303,14 @@ class Heart
 	attr_reader :image
 	def initialize x, y
 		@x, @y = x, y
-		@vx, @vy = -(rand() * 10), -(rand() * 10)
+		@vx, @vy = -(rand() * 10) - 20, -(rand() * 10)
 		@image = Image.new RGJ05.window, 'heart.png', false
 	end
 	def update
 		@vy += 1
 		@y += @vy
 		@x += @vx
-		@vx *= 0.9
+		@vx *= 0.99
 		@vy = 10 if @vy >= 10
 	end
 end
