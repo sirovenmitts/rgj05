@@ -101,21 +101,13 @@ class RGJ05 < Window
 				scale 1.5, 1.5 do
 					translate -a.image.width / 2, -a.image.height / 2 do
 						if a.attempted
-							if a.success
-								draw_quad(
-									0, 0, Color::GREEN,
-									20, 0, Color::GREEN,
-									20, 20, Color::GREEN,
-									0, 20, Color::GREEN,
-									ZOrder::Models - 1)
-							else
-								draw_quad(
-									0, 0, Color::RED,
-									20, 0, Color::RED,
-									20, 20, Color::RED,
-									0, 20, Color::RED,
-									ZOrder::Models - 1)
-							end
+							box_color = a.success ? Color::GREEN : Color::RED
+							draw_quad(
+								0, 0, box_color,
+								20, 0, box_color,
+								20, 20, box_color,
+								0, 20, box_color,
+								ZOrder::Models - 1)
 						end
 						a.image.draw 0, 0, ZOrder::Models
 						text = a.action_type.to_s.tr('_', ' ')
@@ -230,8 +222,7 @@ class RGJ05 < Window
 			rotate 10 do
 				@tourist.draw 0, 0, ZOrder::EndGame
 			end
-			# Text.print 'GOOD JOB! I LOVE YOU!', 300, 100
-			# I have to manually draw this text
+			# I have to manually draw this text, so that it stays above ZOrder::EndGame
 			Text.small.draw 'GOOD JOB! I LOVE YOU!', 300, 100, ZOrder::EndGame + 1, 1, 1, Color::BLACK
 		end
 	end

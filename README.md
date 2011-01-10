@@ -17,3 +17,7 @@ the love. HELP. HIM.
 ***
 # technology!
 This game requires [Ruby](http://ruby-lang.org) (tested on 1.9.2) and [Gosu](http://libgosu.org).
+***
+# attribution of assets
+* The tourist picture is from [Flickr](http://www.flickr.com/photos/canipanic/294856466/).
+* The font (Retroville NC) is from [DaFont](http://www.dafont.com/).
