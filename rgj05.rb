@@ -2,7 +2,23 @@
 require 'gosu'
 include Gosu
 TIMELINE_HEIGHT = 50
-ACTION_TYPES = [:hug, :high_five, :love_beam]
+module ZOrder
+	Background = 1
+	Models = 2
+	Text = 4
+	EndGame = 8
+end
+class Text
+	@@fonts = {}
+	def self.print message, x, y, text_size = :small
+		self.method(text_size).call.draw message, x, y, ZOrder::Text, 1, 1, Color::BLACK
+	end
+	%w(small medium large).each_with_index do |m, i|
+		define_singleton_method(m) do
+			@@fonts[m] ||= Font.new RGJ05.window, 'RetroVille NC', 10 * (i + 1)
+		end
+	end
+end
 class RGJ05 < Window
 	attr_accessor :score
 	def self.window
@@ -10,7 +26,7 @@ class RGJ05 < Window
 	end
 	%w(width height).each {|m| define_singleton_method(m) {window.send m}}
 	def initialize
-		super 640, 480, false # 320, 240, false
+		super 640, 480, false
 		@actions = []
 		@last_action_pushed = 0
 		@reticle = Image.new self, 'reticle.png', false
@@ -19,9 +35,7 @@ class RGJ05 < Window
 		@tourist = Image.new self, 'tourist.png', false
 		@high_five = Image.new self, 'tourist_high_five.png', false
 		@hearts = []
-		@action_queue = 100.times.inject([]) {|m, _| m.push ACTION_TYPES.sample}
-		@font = Font.new self, 'Retroville NC', 14
-		@small = Font.new self, 'Retroville NC', 10
+		@action_queue = 100.times.inject([]) {|m, _| m.push [:hug, :high_five, :love_beam].sample}
 		@score = 0
 		@delay = 2000
 		@speed = 2000.0
@@ -56,25 +70,29 @@ class RGJ05 < Window
 			0, 0, @sky_blue,
 			width, 0, @sky_blue,
 			width, height, @dodger_blue,
-			0, height, @dodger_blue)
+			0, height, @dodger_blue,
+			ZOrder::Background)
 		draw_quad(
 			0, height / 2, @lawn_green,
 			width, height / 2, @lawn_green,
 			width, height, @lawn_green,
-			0, height, @lawn_green)
+			0, height, @lawn_green,
+			ZOrder::Background)
 		draw_quad(
 			0, height - TIMELINE_HEIGHT - 15, Color::GRAY,
 			width, height - TIMELINE_HEIGHT - 15, Color::GRAY,
 			width, height - TIMELINE_HEIGHT + 15, Color::GRAY,
-			0, height - TIMELINE_HEIGHT + 15, Color::GRAY)
+			0, height - TIMELINE_HEIGHT + 15, Color::GRAY,
+			ZOrder::Background)
 		unless @bear.up_to_speed
-			@font.draw 'GET UP TO SPEED!', width / 2 - @font.text_width('GET UP TO SPEED!') / 2, 50, 5
-			@font.draw @bear.pushes, width / 2 + @font.text_width('GET UP TO SPEED!') / 2 + 10, 50, 5
+			msg = 'GET UP TO SPEED!'
+			Text.print msg, width / 2 - Text.medium.text_width(msg) / 2, 50, :medium
+			Text.print @bear.pushes, width / 2 + Text.medium.text_width(msg) / 2 + 10, 50, :medium
 		end
 		translate width / 2, height - TIMELINE_HEIGHT do
 			scale 2, 2 do
 				translate -@reticle.width / 2, -@reticle.height / 2 do
-					@reticle.draw 0, 0, 1
+					@reticle.draw 0, 0, ZOrder::Models
 				end
 			end
 		end
@@ -88,18 +106,20 @@ class RGJ05 < Window
 									0, 0, Color::GREEN,
 									20, 0, Color::GREEN,
 									20, 20, Color::GREEN,
-									0, 20, Color::GREEN)
+									0, 20, Color::GREEN,
+									ZOrder::Models - 1)
 							else
 								draw_quad(
 									0, 0, Color::RED,
 									20, 0, Color::RED,
 									20, 20, Color::RED,
-									0, 20, Color::RED)
+									0, 20, Color::RED,
+									ZOrder::Models - 1)
 							end
 						end
-						a.image.draw 0, 0, 0
+						a.image.draw 0, 0, ZOrder::Models
 						text = a.action_type.to_s.tr('_', ' ')
-						@small.draw text, -@small.text_width(text) / 2 + a.image.width / 2, 5, 0, 1, 1, Color::BLACK	
+						Text.print text, -Text.small.text_width(text) / 2 + a.image.width / 2, 5
 					end
 				end
 			end
@@ -107,22 +127,22 @@ class RGJ05 < Window
 		translate width / 2, height / 2 do
 			scale 2, 2 do
 				translate -@bear.image.width / 2, -@bear.image.height / 2 do
-					@bear.image.draw 0, 0, 3
+					@bear.image.draw 0, 0, ZOrder::Models + 1
 				end
 			end
 		end
-		@small.draw 'h to hug', 10, 10, 5
-		@small.draw 'f to high five', 10, 20, 5
-		@small.draw 'z to love beam', 10, 30, 5
-		@small.draw 'alternate l and r to get up to speed!', 10, 40, 5
-		@small.draw "you have #{@score} points! Keep up the love!", 10, 50, 5 if @bear.up_to_speed
-		@small.draw "Uh-oh, you have missed #{@misses} times!", 10, 60, 5 if @misses > 0
+		Text.print 'h to hug', 10, 10
+		Text.print 'f to high five', 10, 20
+		Text.print 'z to love beam', 10, 30
+		Text.print 'alternate l and r to get up to speed!', 10, 40
+		Text.print "you have #{@score} points! Keep up the love!", 10, 50 if @bear.up_to_speed
+		Text.print "Uh-oh, you have missed #{@misses} times!", 10, 60 if @misses > 0
 		action = @actions.detect {|a| a.action_type == :love_beam}
 		if action && action.action_type == :love_beam && action.attempted && action.success
 			if action.x < width && action.x > 0
-				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::YELLOW
-				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::RED
-				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 30, 0, Color::BLUE
+				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::YELLOW, ZOrder::Models
+				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 20, 0, Color::RED, ZOrder::Models
+				draw_line RGJ05.width / 2, RGJ05.height / 2, Color::RED, RGJ05.width - rand() * 30, 0, Color::BLUE, ZOrder::Models
 			end
 		end
 		@actions.select {|a| a.action_type == :love_beam}.each do |a|
@@ -131,14 +151,14 @@ class RGJ05 < Window
 					translate width * 3 / 4 + @bird.image.width / 2, 100 do
 						rotate milliseconds do
 							translate -@bird.image.width / 2, -@bird.image.height / 2 do
-								@bird.image.draw 0, 0, 0
+								@bird.image.draw 0, 0, ZOrder::Models
 								@hearts.push Heart.new width * 3 / 4 + @bird.image.width / 2 + (rand() * 10) - 5, 100 + (rand() * 10) - 5
 							end
 						end
 					end
 				end
 			else
-				@bird.image.draw a.x + width / 2, 100, 0
+				@bird.image.draw a.x + width / 2, 100, ZOrder::Models
 			end
 		end
 		@actions.select {|a| a.action_type == :hug}.each do |a|
@@ -148,7 +168,7 @@ class RGJ05 < Window
 					rotate 50 do
 						scale 0.05, 0.05 do
 							translate -@tourist.width / 2, -@tourist.height / 2 do
-								@tourist.draw 0, 0, 1
+								@tourist.draw 0, 0, ZOrder::Models
 								@hearts.push Heart.new a.x + width / 2 + (rand() * 10) - 5, height / 2 - 20 + (rand() * 10) - 5
 							end
 						end
@@ -162,7 +182,7 @@ class RGJ05 < Window
 				translate a.x + width / 2, height / 2 - 20 do
 					scale 0.05, 0.05 do
 						translate -@tourist.width / 2, -@tourist.height / 2 do
-							@tourist.draw 0, 0, 1
+							@tourist.draw 0, 0, ZOrder::Models
 						end
 					end
 				end
@@ -175,7 +195,7 @@ class RGJ05 < Window
 					rotate 50 do
 						scale 0.05, 0.05 do
 							translate -@high_five.width / 2, -@high_five.height / 2 do
-								@high_five.draw 0, 0, 1
+								@high_five.draw 0, 0, ZOrder::Models
 								@hearts.push Heart.new a.x + width / 2 + (rand() * 10) - 5, height / 2 - 20 - 20
 							end
 						end
@@ -191,25 +211,28 @@ class RGJ05 < Window
 				translate a.x + width / 2, height / 2 - 20 do
 					scale 0.05, 0.05 do
 						translate -@high_five.width / 2, -@high_five.height / 2 do
-							@high_five.draw 0, 0, 1
+							@high_five.draw 0, 0, ZOrder::Models
 						end
 					end
 				end
 			end
 		end
 		@hearts.each do |h|
-			h.image.draw h.x, h.y, 2
+			h.image.draw h.x, h.y, ZOrder::Models + 2
 		end
 		if @score >= 2000
 			draw_quad(
 				0, 0, Color::WHITE,
 				width, 0, Color::RED,
 				width, height, Color::GREEN,
-				0, height, Color::BLUE, 100)
+				0, height, Color::BLUE,
+				ZOrder::EndGame)
 			rotate 10 do
-				@tourist.draw 0, 0, 100
+				@tourist.draw 0, 0, ZOrder::EndGame
 			end
-			@small.draw 'GOOD JOB! I LOVE YOU!', 100, 100, 100
+			# Text.print 'GOOD JOB! I LOVE YOU!', 300, 100
+			# I have to manually draw this text
+			Text.small.draw 'GOOD JOB! I LOVE YOU!', 300, 100, ZOrder::EndGame + 1, 1, 1, Color::BLACK
 		end
 	end
 	def button_down id
