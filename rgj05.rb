@@ -99,7 +99,7 @@ class RGJ05 < Window
 						end
 						a.image.draw 0, 0, 0
 						text = a.action_type.to_s.tr('_', ' ')
-						@small.draw text, -@small.text_width(text) / 2 + a.image.width / 2, 5, 0
+						@small.draw text, -@small.text_width(text) / 2 + a.image.width / 2, 5, 0, 1, 1, Color::BLACK	
 					end
 				end
 			end
